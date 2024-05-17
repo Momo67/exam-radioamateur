@@ -46,7 +46,7 @@ func main() {
 
 	// L'utilisateur entre le nombre d'itérations
 	var nbIterations int
-	fmt.Print("Entrez le nombre d'itérations: ")
+	fmt.Print("Entrez le nombre de questions désirées: ")
 	fmt.Scan(&nbIterations)
 	
 	for i := 0; i < nbIterations; i++ {
