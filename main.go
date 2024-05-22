@@ -122,7 +122,7 @@ func main() {
 			//fmt.Printf("Chapitre %v, question %d\n", noChapitre, noQuestion)
 			fmt.Printf("%v.%d\n", noChapitre, noQuestion)
 		} else {
-			fmt.Printf("Question %s\n", noChapitre)
+			fmt.Printf("%s\n", noChapitre.(string))
 		}
 
 	}
