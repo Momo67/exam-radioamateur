@@ -13,17 +13,17 @@ all: build
 # Build the Go program
 .PHONY: build
 build:
-	go build -o $(BINARY_NAME) $(MAIN_FILE)
+	go build -o bin/$(BINARY_NAME) $(MAIN_FILE)
 
 # Run the Go program
 .PHONY: run
 run: build
-	./$(BINARY_NAME)
+	./bin/$(BINARY_NAME)
 
 # Clean up generated files
 .PHONY: clean
 clean:
-	-rm -f $(BINARY_NAME)
+	-rm -f bin/$(BINARY_NAME)
 
 # Install dependencies (if any)
 .PHONY: deps
