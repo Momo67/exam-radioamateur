@@ -29,6 +29,16 @@ func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion int
 
 		return indexChoisi, elementChoisi
 
+	case []int:
+		// Sélectionner un index de manière aléatoire
+		indexChoisi := rand.Intn(len(t))
+
+		// Récupérer l'élément correspondant à l'index choisi
+		elementChoisi := t[indexChoisi]
+
+		// Retourner l'index choisi et le nombre de questions
+		return elementChoisi, nil
+
 	case []string:
 		// Sélectionner un index de manière aléatoire
 		indexChoisi := rand.Intn(len(t))
@@ -74,6 +84,15 @@ func main() {
 		"TJ703", "TJ802", "TJ803", "TJ807", "TK114", "TK212", "TK215",
 	}
 
+	quizPrescription := []int{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+		21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+		41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+		61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
+		81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+		101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 
+	}
+
 	var quiz interface{}
 
 	// Initialiser le lecteur de clavier
@@ -84,7 +103,7 @@ func main() {
 
 	for {
 		// L'utilisateur choisit le questionnaire
-		fmt.Print("Questionnaire désiré ? (o: OFCOM(2024), d: DARC(2007)): ")
+		fmt.Print("Questionnaire désiré ? (o: OFCOM(2024), p: Prescriptions, d: DARC(2007)): ")
 		char, _, err := keyboard.GetSingleKey()
 		if err != nil {
 			log.Fatal(err)
@@ -93,6 +112,9 @@ func main() {
 		// Vérifier si l'utilisateur a entré un questionnaire valide
 		if char == 'o' || char == 'O' {
 			quiz = quizOFCOM
+			break
+		} else if char == 'p' || char == 'P' {
+			quiz = quizPrescription
 			break
 		}	else if char == 'd' || char == 'D' {
 			quiz = quizDARC
@@ -122,9 +144,15 @@ func main() {
 			//fmt.Printf("Chapitre %v, question %d\n", noChapitre, noQuestion)
 			fmt.Printf("%v.%d\n", noChapitre, noQuestion)
 		} else {
-			fmt.Printf("%s\n", noChapitre.(string))
-		}
-
+			switch v := noChapitre.(type) {
+			case int:
+				fmt.Printf("%d\n", v)
+			case string:
+				fmt.Printf("%s\n", v)
+			default:
+				log.Fatal("Type non supporté")
+			}
+		}	
 	}
 
 }
