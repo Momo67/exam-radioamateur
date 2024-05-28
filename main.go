@@ -9,10 +9,7 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion interface{}) {
-	// Initialiser le générateur de nombres aléatoires
-	rand.NewSource(time.Now().UnixNano())
-
+func choisirElement(tableau interface{}, r *rand.Rand) (noChapitre interface{}, nbQuestion interface{}) {
 	switch t := tableau.(type) {
 	case map[int]int:
 		// Convertir les clés du dictionnaire (index) en une slice d'entiers
@@ -22,7 +19,7 @@ func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion int
 		}
 
 		// Sélectionner un index de manière aléatoire
-		indexChoisi := indexes[rand.Intn(len(indexes))]
+		indexChoisi := indexes[r.Intn(len(indexes))]
 
 		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
@@ -31,7 +28,7 @@ func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion int
 
 	case []int:
 		// Sélectionner un index de manière aléatoire
-		indexChoisi := rand.Intn(len(t))
+		indexChoisi := r.Intn(len(t))
 
 		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
@@ -41,7 +38,7 @@ func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion int
 
 	case []string:
 		// Sélectionner un index de manière aléatoire
-		indexChoisi := rand.Intn(len(t))
+		indexChoisi := r.Intn(len(t))
 
 		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
@@ -52,7 +49,7 @@ func choisirElement(tableau interface{}) (noChapitre interface{}, nbQuestion int
 	default:
 		log.Fatal("Type de tableau non supporté")
 		return nil, nil
-	}	
+	}
 }
 
 func main() {
@@ -90,7 +87,7 @@ func main() {
 		41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
 		61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80,
 		81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-		101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 
+		101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
 	}
 
 	var quiz interface{}
@@ -116,13 +113,12 @@ func main() {
 		} else if char == 'p' || char == 'P' {
 			quiz = quizPrescription
 			break
-		}	else if char == 'd' || char == 'D' {
+		} else if char == 'd' || char == 'D' {
 			quiz = quizDARC
 			break
 		} else {
 			fmt.Println("Questionnaire invalide. Veuillez réessayer.")
 		}
-
 	}
 
 	fmt.Println("")
@@ -131,28 +127,45 @@ func main() {
 	var nbQuestions int
 	fmt.Print("Nombre de questions ? : ")
 	fmt.Scan(&nbQuestions)
-	
+
+	// Initialiser le générateur de nombres aléatoires avec l'heure actuelle
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+
+	// Map pour stocker les combinaisons déjà générées
+	combinaisonsGenerees := make(map[string]bool)
+
 	for i := 0; i < nbQuestions; i++ {
-		
-		// Choisir un chapitre aléatoirement
-		noChapitre, nbQuestions := choisirElement(quiz)
+		var noQuestion interface{}
+		var combinaison string
 
-		if nbQuestions != nil {
+		for {
+			// Choisir un chapitre aléatoirement
+			noChapitre, nbQuestions := choisirElement(quiz, r)
 
-			// Choisir une question aléatoirement
-			noQuestion := rand.Intn(nbQuestions.(int)) + 1
-			//fmt.Printf("Chapitre %v, question %d\n", noChapitre, noQuestion)
-			fmt.Printf("%v.%d\n", noChapitre, noQuestion)
-		} else {
-			switch v := noChapitre.(type) {
-			case int:
-				fmt.Printf("%d\n", v)
-			case string:
-				fmt.Printf("%s\n", v)
-			default:
-				log.Fatal("Type non supporté")
+			if nbQuestions != nil {
+				// Choisir une question aléatoirement
+				noQuestion = r.Intn(nbQuestions.(int)) + 1
+				combinaison = fmt.Sprintf("%v.%d", noChapitre, noQuestion)
+			} else {
+				switch v := noChapitre.(type) {
+				case int:
+					combinaison = fmt.Sprintf("%d", v)
+				case string:
+					combinaison = fmt.Sprintf("%s", v)
+				default:
+					log.Fatal("Type non supporté")
+				}
 			}
-		}	
-	}
 
+			// Vérifier si la combinaison a déjà été générée
+			if !combinaisonsGenerees[combinaison] {
+				combinaisonsGenerees[combinaison] = true
+				break
+			}
+		}
+
+		// Afficher la combinaison générée
+		fmt.Println(combinaison)
+	}
 }
