@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/eiannone/keyboard"
@@ -12,44 +13,80 @@ import (
 func choisirElement(tableau interface{}, r *rand.Rand) (noChapitre interface{}, nbQuestion interface{}) {
 	switch t := tableau.(type) {
 	case map[int]int:
-		// Convertir les clés du dictionnaire (index) en une slice d'entiers
 		indexes := make([]int, 0, len(t))
 		for index := range t {
 			indexes = append(indexes, index)
 		}
-
-		// Sélectionner un index de manière aléatoire
 		indexChoisi := indexes[r.Intn(len(indexes))]
-
-		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
-
 		return indexChoisi, elementChoisi
 
 	case []int:
-		// Sélectionner un index de manière aléatoire
 		indexChoisi := r.Intn(len(t))
-
-		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
-
-		// Retourner l'index choisi et le nombre de questions
 		return elementChoisi, nil
 
 	case []string:
-		// Sélectionner un index de manière aléatoire
 		indexChoisi := r.Intn(len(t))
-
-		// Récupérer l'élément correspondant à l'index choisi
 		elementChoisi := t[indexChoisi]
-
-		// Retourner l'index choisi et le nombre de questions
 		return elementChoisi, nil
 
 	default:
 		log.Fatal("Type de tableau non supporté")
 		return nil, nil
 	}
+}
+
+func choisirQuestionsChapitre(quiz map[int]int, chapitre int, nbQuestions int, r *rand.Rand) []string {
+	nbTotalQuestions, exists := quiz[chapitre]
+	if !exists {
+		log.Fatalf("Chapitre %d n'existe pas dans le quiz", chapitre)
+	}
+
+	combinaisonsGenerees := make(map[string]bool)
+	var questions []string
+
+	for i := 0; i < nbQuestions; i++ {
+		var combinaison string
+
+		for {
+			noQuestion := r.Intn(nbTotalQuestions) + 1
+			combinaison = fmt.Sprintf("%d.%d", chapitre, noQuestion)
+
+			if !combinaisonsGenerees[combinaison] {
+				combinaisonsGenerees[combinaison] = true
+				break
+			}
+		}
+
+		questions = append(questions, combinaison)
+	}
+
+	return questions
+}
+
+func choisirQuestionsTousChapitres(quiz map[int]int, nbQuestions int, r *rand.Rand) []string {
+	combinaisonsGenerees := make(map[string]bool)
+	var questions []string
+
+	for i := 0; i < nbQuestions; i++ {
+		var combinaison string
+
+		for {
+			chapitre, nbTotalQuestions := choisirElement(quiz, r)
+			noQuestion := r.Intn(nbTotalQuestions.(int)) + 1
+			combinaison = fmt.Sprintf("%d.%d", chapitre, noQuestion)
+
+			if !combinaisonsGenerees[combinaison] {
+				combinaisonsGenerees[combinaison] = true
+				break
+			}
+		}
+
+		questions = append(questions, combinaison)
+	}
+
+	return questions
 }
 
 func main() {
@@ -76,9 +113,6 @@ func main() {
 		"TB402", "TB405", "TB504", "TB506", "TB510", "TB511", "TB512", "TB605", "TB612", "TB910",
 		"TB913", "TB919", "TC101", "TC203", "TC207", "TC302", "TC314", "TC401", "TC406", "TC407",
 		"TC516", "TC519", "TC520", "TC618", "TC621", "TC623", "TC709", "TC716", "TD119", "TD211",
-		"TD212", "TD309", "TD312", "TD313", "TD318", "TD406", "TD419", "TD424", "TD605", "TD608",
-		"TE209", "TE313", "TF204", "TF320", "TG101", "TG111", "TG206", "TH105", "TH157", "TH410",
-		"TJ703", "TJ802", "TJ803", "TJ807", "TK114", "TK212", "TK215",
 	}
 
 	quizPrescription := []int{
@@ -91,22 +125,13 @@ func main() {
 	}
 
 	var quiz interface{}
-
-	// Initialiser le lecteur de clavier
-	if err := keyboard.Open(); err != nil {
-		log.Fatal(err)
-	}
-	defer keyboard.Close()
-
 	for {
-		// L'utilisateur choisit le questionnaire
-		fmt.Print("Questionnaire désiré ? (o: OFCOM(2024), p: Prescriptions, d: DARC(2007)): ")
+		fmt.Print("Questionnaire désiré (o: OFCOM(2024), p: Prescriptions, d: DARC(2007)) ? ")
 		char, _, err := keyboard.GetSingleKey()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Vérifier si l'utilisateur a entré un questionnaire valide
 		if char == 'o' || char == 'O' {
 			quiz = quizOFCOM
 			break
@@ -123,49 +148,87 @@ func main() {
 
 	fmt.Println("")
 
-	// L'utilisateur entre le nombre de questions désirées
 	var nbQuestions int
-	fmt.Print("Nombre de questions ? : ")
+	fmt.Print("Nombre de questions ? ")
 	fmt.Scan(&nbQuestions)
 
-	// Initialiser le générateur de nombres aléatoires avec l'heure actuelle
 	source := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(source)
 
-	// Map pour stocker les combinaisons déjà générées
-	combinaisonsGenerees := make(map[string]bool)
+	if reflect.DeepEqual(quiz, quizOFCOM) {
+		fmt.Print("Souhaitez-vous sélectionner un chapitre spécifique ou tous les chapitres (s: spécifique, t: tous) ? ")
+		choixChapitre, _, err := keyboard.GetSingleKey()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("")
 
-	for i := 0; i < nbQuestions; i++ {
-		var noQuestion interface{}
-		var combinaison string
+		if choixChapitre == 's' || choixChapitre == 'S' {
+			var chapitre int
+			fmt.Print("Chapitre désiré pour le quiz OFCOM ? ")
+			fmt.Scan(&chapitre)
 
-		for {
-			// Choisir un chapitre aléatoirement
-			noChapitre, nbQuestions := choisirElement(quiz, r)
+			nbTotalQuestions, exists := quizOFCOM[chapitre]
+			if !exists {
+				log.Fatalf("Chapitre %d n'existe pas dans le quiz OFCOM", chapitre)
+			}
 
-			if nbQuestions != nil {
-				// Choisir une question aléatoirement
-				noQuestion = r.Intn(nbQuestions.(int)) + 1
-				combinaison = fmt.Sprintf("%v.%d", noChapitre, noQuestion)
-			} else {
-				switch v := noChapitre.(type) {
-				case int:
-					combinaison = fmt.Sprintf("%d", v)
-				case string:
-					combinaison = fmt.Sprintf("%s", v)
-				default:
-					log.Fatal("Type non supporté")
+			if nbQuestions > nbTotalQuestions {
+				log.Fatalf("Le nombre de questions demandé dépasse le nombre de questions disponibles dans le chapitre %d (disponibles: %d)", chapitre, nbTotalQuestions)
+			}
+
+			questions := choisirQuestionsChapitre(quizOFCOM, chapitre, nbQuestions, r)
+			for _, question := range questions {
+				fmt.Println(question)
+			}
+		} else if choixChapitre == 't' || choixChapitre == 'T' {
+			var nbTotalQuestions int
+			for _, nb := range quizOFCOM {
+				nbTotalQuestions += nb
+			}
+
+			if nbQuestions > nbTotalQuestions {
+				log.Fatalf("Le nombre de questions demandé dépasse le nombre total de questions disponibles (%d)", nbTotalQuestions)
+			}
+
+			questions := choisirQuestionsTousChapitres(quizOFCOM, nbQuestions, r)
+			for _, question := range questions {
+				fmt.Println(question)
+			}
+		} else {
+			log.Fatal("Choix invalide")
+		}
+	} else {
+		combinaisonsGenerees := make(map[string]bool)
+
+		for i := 0; i < nbQuestions; i++ {
+			var noQuestion interface{}
+			var combinaison string
+
+			for {
+				noChapitre, nbQuestions := choisirElement(quiz, r)
+
+				if nbQuestions != nil {
+					noQuestion = r.Intn(nbQuestions.(int)) + 1
+					combinaison = fmt.Sprintf("%v.%d", noChapitre, noQuestion)
+				} else {
+					switch v := noChapitre.(type) {
+					case int:
+						combinaison = fmt.Sprintf("%d", v)
+					case string:
+						combinaison = fmt.Sprintf("%s", v)
+					default:
+						log.Fatal("Type non supporté")
+					}
+				}
+
+				if !combinaisonsGenerees[combinaison] {
+					combinaisonsGenerees[combinaison] = true
+					break
 				}
 			}
 
-			// Vérifier si la combinaison a déjà été générée
-			if !combinaisonsGenerees[combinaison] {
-				combinaisonsGenerees[combinaison] = true
-				break
-			}
+			fmt.Println(combinaison)
 		}
-
-		// Afficher la combinaison générée
-		fmt.Println(combinaison)
 	}
 }
